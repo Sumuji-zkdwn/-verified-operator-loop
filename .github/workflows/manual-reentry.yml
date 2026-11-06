@@ -1,0 +1,85 @@
+name: Manual bounded verified re-entry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: manual-verified-finite-reentry
+  cancel-in-progress: false
+
+jobs:
+  grow:
+    name: Extend isolated verified finite ledger by one candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          path: working
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test reviewed controller from main
+        working-directory: control
+        run: python -m unittest discover -s tests -v
+      - name: Reopen persistent branch or initialize from main
+        working-directory: working
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='autonomy/verified-finite-state'
+          if git ls-remote --exit-code --heads origin "refs/heads/${branch}" > /dev/null; then
+            git fetch --no-tags origin "+refs/heads/${branch}:refs/remotes/origin/${branch}"
+            git switch --create "$branch" --track "origin/$branch"
+          else
+            git switch --create "$branch"
+          fi
+      - name: Replay and validate entire previous ledger
+        env:
+          PYTHONPATH: ${{ github.workspace }}/control
+        run: python -m loopcore audit --domain finite --root working/state/finite --recheck
+      - name: Generate exactly one bounded candidate
+        env:
+          PYTHONPATH: ${{ github.workspace }}/control
+        run: python -m loopcore run --domain finite --root working/state/finite
+      - name: Recompute all checks before durable write-back
+        env:
+          PYTHONPATH: ${{ github.workspace }}/control
+        run: python -m loopcore audit --domain finite --root working/state/finite --recheck
+      - name: Commit only verified data to dedicated branch
+        working-directory: working
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f state/finite/ledger.json ]; then
+            echo 'No candidates generated; nothing to commit'
+            exit 0
+          fi
+          git add -- state/finite/ledger.json state/finite/cycles/
+          if git diff --cached --quiet; then
+            echo 'Candidate catalogue exhausted'
+            exit 0
+          fi
+          git config user.name 'operator-loop[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'auto: append one verified finite witness'
+          git push origin 'HEAD:refs/heads/autonomy/verified-finite-state'
+      - name: Save complete evidence even on failed commit
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-reentry-${{ github.run_id }}-${{ github.run_attempt }}
+          path: working/state/finite/
+          if-no-files-found: warn
+          retention-days: 30

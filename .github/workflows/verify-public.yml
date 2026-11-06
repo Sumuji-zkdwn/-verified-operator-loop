@@ -1,0 +1,37 @@
+name: Public finite operator loop verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify finite operator generator and provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Run offline unit tests (no credentials)
+        run: python -m unittest discover -s tests -v
+      - name: Exercise two fresh cycles and replay history
+        run: |
+          python -m loopcore run --domain finite --root build/public-finite
+          python -m loopcore run --domain finite --root build/public-finite
+          python -m loopcore audit --domain finite --root build/public-finite --recheck
+          python -m loopcore status --domain finite --root build/public-finite
+      - name: Save evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-finite-cycle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/public-finite/
+          if-no-files-found: warn
+          retention-days: 14
