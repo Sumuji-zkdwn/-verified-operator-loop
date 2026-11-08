@@ -13,7 +13,7 @@ javac -encoding UTF-8 -d build/testclasses app/src/main/java/jp/example/mathime/
 java -cp build/testclasses jp.example.mathime.KeyLayoutsTest
 "$build_tools/aapt" package -f -M app/src/main/AndroidManifest.xml -S app/src/main/res -I "$platform" -F build/base.apk -J build/gen
 find app/src/main/java build/gen -name '*.java' > build/sources.txt
-javac -encoding UTF-8 -source 8 -target 8 -bootclasspath "$platform" -d build/classes @build/sources.txt
+javac -encoding UTF-8 --release 8 -classpath "$platform" -d build/classes @build/sources.txt
 find build/classes -name '*.class' > build/classes.txt
 "$build_tools/d8" --min-api 26 --lib "$platform" --output build/dex @build/classes.txt
 cp build/base.apk build/unsigned.apk
