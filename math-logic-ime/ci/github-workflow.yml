@@ -1,0 +1,22 @@
+name: Build math flick IME
+on:
+  push:
+    branches:
+      - 'codex/math-flick-*'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile, test, package and sign APK
+        run: bash math-logic-ime/ci/build.sh
+      - name: Upload APK and development signing key
+        uses: actions/upload-artifact@v4
+        with:
+          name: math-flick-android
+          path: |
+            math-logic-ime/build/math-flick.apk
+            math-logic-ime/debug-signing.keystore
+          retention-days: 30
