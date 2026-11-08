@@ -6,7 +6,11 @@ from pathlib import Path
 out=Path('math-logic-ime/build/ui')
 out.mkdir(parents=True, exist_ok=True)
 def adb(*args, check=True):
-    return subprocess.run(['adb',*args],check=check,stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout
+    result=subprocess.run(['adb',*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    if result.returncode and check:
+        print('ADB failed:',args,'stdout:',result.stdout.decode(errors='replace'),'stderr:',result.stderr.decode(errors='replace'),flush=True)
+        raise RuntimeError('adb command failed')
+    return result.stdout
 
 def dump():
     adb('shell','uiautomator','dump','--compressed','/sdcard/math-ime-ui.xml')
@@ -35,6 +39,9 @@ def edit_text():
     return node.attrib.get('text','')
 
 adb('install','-r','math-logic-ime/build/math-flick.apk')
+print('installed:', adb('shell','pm','list','packages','jp.example.mathime').decode(), flush=True)
+print('input methods:',adb('shell','ime','list','-a','-s').decode(),flush=True)
+print('service query:',adb('shell','cmd','package','query-services','-a','android.view.InputMethod').decode(),flush=True)
 adb('shell','ime','enable','jp.example.mathime/.MathInputService')
 adb('shell','ime','set','jp.example.mathime/.MathInputService')
 adb('shell','am','start','-n','jp.example.mathime/.MainActivity')
