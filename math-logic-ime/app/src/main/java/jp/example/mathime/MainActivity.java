@@ -55,12 +55,12 @@ public final class MainActivity extends Activity {
         TextView eyebrow=text("MATH FLICK",12,accent);eyebrow.setTypeface(null,Typeface.BOLD);content.addView(eyebrow,p(-2,0));
         TextView title=text("数式フリック",28,ink);title.setTypeface(null,Typeface.BOLD);content.addView(title,p(-2,6));
         content.addView(text("記号をタップ、または上下左右にフリック。\nいつものアプリで、そのまま使えます。",15,secondary),p(-2,8));
+        TextView practice=text("設定後、ここで練習",17,ink);practice.setTypeface(null,Typeface.BOLD);content.addView(practice,p(-2,12));
+        EditText input=new EditText(this);practiceInput=input;input.setSingleLine(false);input.setMinLines(3);input.setTextSize(18);input.setPadding(dp(12),dp(10),dp(12),dp(10));input.setGravity(Gravity.TOP|Gravity.START);
+        input.setHint("例：∀x ∈ ℝ  x² ≥ 0");input.setBackground(shape(Color.WHITE,10));content.addView(input,p(80,8));
         status=text("",14,secondary);status.setPadding(dp(14),dp(12),dp(14),dp(12));status.setBackground(shape(Color.WHITE,10));content.addView(status,p(-2,18));
         content.addView(action("1   キーボードを有効にする",true,()->startActivity(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))),p(52,16));
         content.addView(action("2   数式フリックを選ぶ",false,()->((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showInputMethodPicker()),p(52,8));
-        TextView practice=text("ここで練習",17,ink);practice.setTypeface(null,Typeface.BOLD);content.addView(practice,p(-2,24));
-        EditText input=new EditText(this);practiceInput=input;input.setSingleLine(false);input.setMinLines(3);input.setTextSize(18);input.setPadding(dp(12),dp(10),dp(12),dp(10));input.setGravity(Gravity.TOP|Gravity.START);
-        input.setHint("例：∀x ∈ ℝ  x² ≥ 0");input.setBackground(shape(Color.WHITE,10));content.addView(input,p(108,8));
         content.addView(text("タブで「基本・論理・集合・微積・αβ・英数」を切り替えます。右上の「文字／LaTeX」で出力形式を変更できます。",14,secondary),p(-2,16));
         content.addView(text("🌐 を押すと、普段の日本語キーボードに戻せます。⌫ 長押しで連続削除、◀ ▶ でカーソル移動。",14,secondary),p(-2,9));
         TextView height=text("キーの高さ",17,ink);height.setTypeface(null,Typeface.BOLD);content.addView(height,p(-2,24));

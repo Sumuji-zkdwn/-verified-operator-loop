@@ -94,6 +94,11 @@ w,h=map(int,re.search(r'(\d+)x(\d+)',size).groups())
 dpi=int(re.search(r'(\d+)',density).group(1)); scale=dpi/160
 top=keyboard_top(screen)
 print('keyboard top:',top,flush=True)
+app_root=dump()
+practice=find(app_root,lambda n:n.attrib.get('class')=='android.widget.EditText')
+practice_bottom=list(map(int,re.findall(r'\d+',practice.attrib['bounds'])))[3]
+print('practice field bottom:',practice_bottom,flush=True)
+assert practice_bottom<=top, 'practice field is covered by keyboard'
 def point(x,y): adb('shell','input','tap',str(round(x)),str(round(y)));time.sleep(.8)
 point(w*1.5/6, top+52*scale)  # 論理 tab
 x=w*0.135; y=top+110*scale     # first symbol key
