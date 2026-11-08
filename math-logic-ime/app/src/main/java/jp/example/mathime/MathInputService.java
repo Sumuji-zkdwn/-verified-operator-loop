@@ -51,6 +51,10 @@ public final class MathInputService extends InputMethodService {
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
         tex = prefs.getBoolean("tex", false);
         root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(4),dp(2),dp(4),dp(3)); root.setBackgroundColor(BG);
+        root.setOnApplyWindowInsetsListener((v,insets)->{
+            int bottom=android.os.Build.VERSION.SDK_INT>=30 ? insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom : insets.getSystemWindowInsetBottom();
+            v.setPadding(dp(4),dp(2),dp(4),dp(3)+bottom); return insets;
+        });
         LinearLayout bar = new LinearLayout(this); bar.setGravity(Gravity.CENTER_VERTICAL);
         tip = text("タップ＝中央 ・ フリック＝周囲", 12, MUTED); tip.setGravity(Gravity.CENTER_VERTICAL | Gravity.START); tip.setPadding(dp(7),0,0,0);
         bar.addView(tip, new LinearLayout.LayoutParams(0,dp(32),1));

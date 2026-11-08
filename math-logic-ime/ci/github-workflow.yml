@@ -26,7 +26,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: python3 math-logic-ime/ci/ui_smoke.py
-      - name: Upload APK, test screenshot and development signing key
+      - name: Upload APK and test screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -34,5 +34,4 @@ jobs:
           path: |
             math-logic-ime/build/math-flick.apk
             math-logic-ime/build/ui/
-            math-logic-ime/debug-signing.keystore
           retention-days: 30

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Exercise the installed IME through Android's UI, not just the layout tables."""
-import os, re, subprocess, time, xml.etree.ElementTree as ET
+import os, re, struct, subprocess, time, zlib, xml.etree.ElementTree as ET
 from pathlib import Path
 
 out=Path('math-logic-ime/build/ui')
@@ -61,20 +61,48 @@ tap(find(root,lambda n:n.attrib.get('class')=='android.widget.EditText'))
 time.sleep(2)
 # The platform UI dumper exposes the focused app window, not the separate IME
 # window. Capture a screenshot and use screen/density-derived IME coordinates.
-(out/'keyboard-before.png').write_bytes(adb('exec-out','screencap','-p'))
-print('window information:',adb('shell','dumpsys','window','windows').decode(errors='replace')[-18000:],flush=True)
+screen=adb('exec-out','screencap','-p')
+(out/'keyboard-before.png').write_bytes(screen)
+def keyboard_top(png):
+    width,height,depth,color=struct.unpack('>IIBB',png[16:26])
+    assert depth==8 and color in (2,6), 'unexpected screenshot format'
+    channels=4 if color==6 else 3
+    data=b'';pos=8
+    while pos<len(png):
+        n=struct.unpack('>I',png[pos:pos+4])[0];typ=png[pos+4:pos+8]
+        if typ==b'IDAT': data+=png[pos+8:pos+8+n]
+        pos+=12+n
+        if typ==b'IEND': break
+    raw=zlib.decompress(data);stride=width*channels+1;prev=[0]*(channels*3); streak=0
+    for y in range(height):
+        row=raw[y*stride:(y+1)*stride]; f=row[0]; cur=[]
+        for i,byte in enumerate(row[1:1+channels*3]):
+            a=cur[i-channels] if i>=channels else 0;b=prev[i];c=prev[i-channels] if i>=channels else 0
+            pred=0
+            if f==1:pred=a
+            elif f==2:pred=b
+            elif f==3:pred=(a+b)//2
+            elif f==4:
+                p=a+b-c;pa,pb,pc=abs(p-a),abs(p-b),abs(p-c);pred=a if pa<=pb and pa<=pc else b if pb<=pc else c
+            cur.append((byte+pred)&255)
+        prev=cur
+        streak=streak+1 if tuple(cur[channels*2:channels*2+3])==(233,238,240) else 0
+        if streak==10 and y>height//4:return y-9
+    raise AssertionError('keyboard background not found in screenshot')
 size=adb('shell','wm','size').decode(); density=adb('shell','wm','density').decode()
 w,h=map(int,re.search(r'(\d+)x(\d+)',size).groups())
 dpi=int(re.search(r'(\d+)',density).group(1)); scale=dpi/160
-bottom=h-round(24*scale)
-top=bottom-round(398*scale)
+top=keyboard_top(screen)
+print('keyboard top:',top,flush=True)
 def point(x,y): adb('shell','input','tap',str(round(x)),str(round(y)));time.sleep(.8)
 point(w*1.5/6, top+52*scale)  # 論理 tab
 x=w*0.135; y=top+110*scale     # first symbol key
 point(x,y)
 adb('shell','input','swipe',str(round(x)),str(round(y)),str(round(x-36*scale)),str(round(y)),'180');time.sleep(.7)
+point(w*.88, top+16*scale)  # Unicode / TeX
+point(x,y)
 (out/'keyboard.png').write_bytes(adb('exec-out','screencap','-p'))
 adb('shell','input','keyevent','4');time.sleep(1)
 actual=edit_text();print('typed:',repr(actual),flush=True)
-assert actual=='∀∃', 'tap/flick output: '+repr(actual)
-print('PASS: installed and enabled IME; Unicode tap and left flick')
+assert actual=='∀∃\\forall ', 'tap/flick/TeX output: '+repr(actual)
+print('PASS: installed and enabled IME; Unicode tap and left flick; LaTeX')
