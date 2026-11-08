@@ -40,10 +40,20 @@ def edit_text():
 
 adb('install','-r','math-logic-ime/build/math-flick.apk')
 print('installed:', adb('shell','pm','list','packages','jp.example.mathime').decode(), flush=True)
-print('input methods:',adb('shell','ime','list','-a','-s').decode(),flush=True)
-print('service query:',adb('shell','cmd','package','query-services','-a','android.view.InputMethod').decode(),flush=True)
-adb('shell','ime','enable','jp.example.mathime/.MathInputService')
-adb('shell','ime','set','jp.example.mathime/.MathInputService')
+ime_id=None
+for attempt in range(30):
+    methods=adb('shell','ime','list','-a','-s').decode()
+    ime_id=next((line.strip() for line in methods.splitlines() if line.startswith('jp.example.mathime/')),None)
+    if ime_id: break
+    time.sleep(1)
+if not ime_id:
+    logs=adb('logcat','-d','-t','4000').decode(errors='replace')
+    print('input methods:',methods,flush=True)
+    print('IME log:', '\n'.join(line for line in logs.splitlines() if 'InputMethod' in line or 'mathime' in line),flush=True)
+    raise AssertionError('IME service did not register')
+print('registered:',ime_id,flush=True)
+adb('shell','ime','enable',ime_id)
+adb('shell','ime','set',ime_id)
 adb('shell','am','start','-n','jp.example.mathime/.MainActivity')
 time.sleep(3)
 root=dump()
